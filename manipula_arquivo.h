@@ -4,37 +4,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-
-#define bool int
-#define true 1
-#define false 0 
+#include "manipula_indice.h"
+ 
 #define arquivoSaida "saida.bin"
 #define arquivoEntrada "entrada.csv"
-#define arquivoIndice "indice.bin"
 #define TAMANHOREGISTRO 112
-#define TAMANHOPAGINA 116
 #define T_CABECALHO 5
-#define T_CABECALHO_INDICE 13
-
-struct elemento{
-
-int chave;
-int RRN;
-
-
-};
-
-typedef struct elemento Elemento
-
-struct pagina{
-
-	int n;
-	int ponteiros[10];
-	Elemento elementos[9];
-};
-
-typedef struct pagina Pagina;
 
 struct registro {
 	int codEscola;
