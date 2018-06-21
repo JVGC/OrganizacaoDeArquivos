@@ -29,10 +29,10 @@ struct pagina{
 
 typedef struct pagina Pagina;
 
-int split(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, int RRN, int pai, int noRaiz);
+int split(FILE* fp, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int noRaiz);
 void escrevePagina(FILE* fp, Pagina* p, int RRN);
 void Ordena(Pagina* p, int codEscola, int data_reference);
-int percorreArvore(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int noRaiz);
+int percorreArvore(FILE* fp, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int noRaiz);
 void insereIndice(FILE* fp, int codEscola, int RRN);
 void imprimePagina(Pagina* p);
 bool proxPagina(FILE *fp);

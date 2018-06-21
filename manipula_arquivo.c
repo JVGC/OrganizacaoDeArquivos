@@ -162,13 +162,8 @@ void arquivo_saida(Arquivo *entrada) {
 	fp = fopen(arquivoSaida, "wb");
 
 	indice_file = fopen(arquivoIndice, "rb+");
-	if(indice_file == NULL){
-		printf("DEURUIMMM\n");
-		indice_file = fopen(arquivoIndice, "wb");
-		fclose(indice_file);
-		indice_file = fopen(arquivoIndice, "rb+");
-	}
-
+	if(indice_file == NULL)
+		return;
 	
 	
 	// Escreve o Cabeçalho do Arquivo de Indices
@@ -194,17 +189,17 @@ void arquivo_saida(Arquivo *entrada) {
 	// Escrevo no Arquivo de Saida os Registros Validos
 	for (int i = 0; i < entrada->n_registros_lidos; ++i){
 		
-		insereIndice(indice_file, entrada->registros_lidos[i].codEscola, i);
 		EscreveRegistro(fp, entrada->registros_lidos[i], i);
-		// if(i == 9)
-		// 	break;
+		insereIndice(indice_file, entrada->registros_lidos[i].codEscola, i);
+		
 	}	
 
-	fseek(indice_file, 0, SEEK_SET);
+	//fseek(indice_file, 0, SEEK_SET);
 
-	ImprimeIndice(indice_file);
+	//ImprimeIndice(indice_file);
 
 	fechaArquivo(fp);
+	fechaArquivo(indice_file);
 	
 	printf("%s\n", "Arquivo carregado.");
 

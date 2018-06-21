@@ -14,24 +14,32 @@ void Ordena(Pagina* p, int codEscola, int data_reference){
 		}
 	}
 	int pos = i;
-	//printf("pos = %d, p->n =  %d\n", pos, p->n);
+	//printf("codEscola = %d \n pos = %d, p->n =  %d\n",codEscola, pos, p->n);
 
-	for(i = pos; i< (p->n); i++){
+	
+	
+
+	for(i = p->n; i> pos; i--){
 		p->ponteiros[i+1] = p->ponteiros[i];
-		p->elementos[i+1].chave = p->elementos[i].chave;
-		p->elementos[i+1].RRN = p->elementos[i].RRN;
+		p->elementos[i].chave = p->elementos[i-1].chave;
+		p->elementos[i].RRN = p->elementos[i-1].RRN;
 	}
 	//printf("i =  %d\n", i);
+
+
+
 	p->elementos[pos].chave = codEscola;
 	p->elementos[pos].RRN = data_reference;
 
 	
 
 
+
+
 }
 
 
-int split(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, int RRN, int pai, int noRaiz){
+int split(FILE* fp, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int noRaiz){
 
 	int i;
 	int newPagRRN;
@@ -49,26 +57,44 @@ int split(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, int RRN, 
 		NewPag->elementos[i - NewPag->n].RRN = p->elementos[i].RRN;
 		
 	}
+
+
+
 	p->n = (p->n)/2;
 	//printf("p->n = %d, NewPag->n = %d\n", p->n, NewPag->n );
-	if(p->elementos[(p->n)].chave < codEscola){
+	if(p->elementos[(p->n)].chave < *codEscola){
+		//NewPag->n +=2;
+		
 		NewPag->n++;
-		Ordena(NewPag, codEscola, data_reference);
+		Ordena(NewPag, *codEscola, *data_reference);
+		
+	
 		
 
 	}else{
-		Ordena(p, codEscola, data_reference);
-		//p->n++;
+		p->n++;
+		Ordena(p, *codEscola, *data_reference);
+		
+		Ordena(NewPag,p->elementos[p->n-1].chave, p->elementos[p->n-1].RRN);
+		p->n--;
+		
 	}
 
 
 	if(Father != NULL){
 		// Insiro o primeiro elemento da nova chave do meu NewPag no Pai
-		Ordena(Father, NewPag->elementos[0].chave, NewPag->elementos[0].RRN);
-		Father->ponteiros[Father->n+1] = (*ultimoRRN)+1;
-		Father->n++;
-		*(ultimoRRN) += 1;
-		newPagRRN = (*ultimoRRN);
+		if(Father->n < 9){
+			Ordena(Father, NewPag->elementos[0].chave, NewPag->elementos[0].RRN);
+			Father->ponteiros[Father->n+1] = (*ultimoRRN)+1;
+			Father->n++;
+			*(ultimoRRN) += 1;
+			newPagRRN = (*ultimoRRN);
+		}else{
+			*(ultimoRRN) += 1;
+			newPagRRN = (*ultimoRRN);
+			(*codEscola) = NewPag->elementos[0].chave;
+			(*data_reference) = NewPag->elementos[0].RRN;
+		}
 		
 		
 	}else{
@@ -106,7 +132,7 @@ int split(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, int RRN, 
 
 }
 
-int percorreArvore(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int noRaiz){
+int percorreArvore(FILE* fp, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int noRaiz){
 	if(RRN == -1){// tenho que inserir no pai
 		fseek(fp, (pai*TAMANHOPAGINA) + T_CABECALHO_INDICE, SEEK_SET);
 		
@@ -115,7 +141,7 @@ int percorreArvore(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, 
 			free(p);
 			*flag = 1;
 		}else{
-			Ordena(p, codEscola, data_reference);
+			Ordena(p, *codEscola, *data_reference);
 			p->n++;
 			escrevePagina(fp, p, pai);
 			free(p);
@@ -130,13 +156,21 @@ int percorreArvore(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, 
 	Pagina* p = pag(fp, RRN);
 	
 	for (i = 0; i < p->n; i++){
-		if(codEscola == p->elementos[i].chave){
+		if(*codEscola == p->elementos[i].chave){
 			return noRaiz;
-		}else if(codEscola < p->elementos[i].chave){
+		}else if(*codEscola < p->elementos[i].chave){
 
 			percorreArvore(fp, codEscola, data_reference, ultimoRRN, p->ponteiros[i], RRN, flag, noRaiz);
 			if(*flag == 1){ // Tenho que fazer o split
-				(*flag) = 0;
+				if(pai != -1){
+					fseek(fp, (pai*TAMANHOPAGINA) + T_CABECALHO_INDICE, SEEK_SET);
+					Pagina* f = pag(fp, pai);
+					if(f->n < 9)
+						(*flag) = 0;
+
+				}else{
+					(*flag) = 0;	
+				}
 				return split(fp, codEscola, data_reference, ultimoRRN, RRN, pai, noRaiz);
 
 			}
@@ -146,7 +180,17 @@ int percorreArvore(FILE* fp, int codEscola, int data_reference, int* ultimoRRN, 
 	percorreArvore(fp, codEscola, data_reference, ultimoRRN, p->ponteiros[i], RRN, flag, noRaiz);
 
 	if(*flag == 1){ // Tenho que fazer o split
-		(*flag) = 0;
+		if(pai != -1){
+			fseek(fp, (pai*TAMANHOPAGINA) + T_CABECALHO_INDICE, SEEK_SET);
+			Pagina* f = pag(fp, pai);
+			if(f->n < 9)
+				(*flag) = 0;
+
+		}else{
+			(*flag) = 0;	
+		}
+		
+
 		return split(fp, codEscola, data_reference, ultimoRRN, RRN, pai, noRaiz);
 	}
 	
@@ -198,7 +242,7 @@ void insereIndice(FILE* fp, int codEscola, int RRN){
 		return;
 	}else{
 		int flag = 0;
-		noRaiz = percorreArvore(fp, codEscola, RRN, &ultimoRRN, noRaiz, -1, &flag, noRaiz);
+		noRaiz = percorreArvore(fp, &codEscola, &RRN, &ultimoRRN, noRaiz, -1, &flag, noRaiz);
 		fseek(fp, 1, SEEK_SET);
 		fwrite(&noRaiz, sizeof(int), 1, fp);
 		fseek(fp, 4, SEEK_CUR);
@@ -396,7 +440,6 @@ Pagina* NoVazio(){
 		NewPag->elementos[i].chave = -1;
 		NewPag->elementos[i].RRN = -1;
 	}
-	
 	NewPag->ponteiros[i] = -1;
 
 	return NewPag;
