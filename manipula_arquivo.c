@@ -156,7 +156,7 @@ void EscreveRegistro(FILE* fp,Registro reg, int RRN){
 
 
 void arquivo_saida(Arquivo *entrada) {
-
+int i;
 
 	FILE *fp, *indice_file;
 	fp = fopen(arquivoSaida, "wb");
@@ -165,12 +165,28 @@ void arquivo_saida(Arquivo *entrada) {
 	if(indice_file == NULL)
 		return;
 	
+	Buffer_Pool* b =(Buffer_Pool*) malloc(sizeof(Buffer_Pool));
+	b->pages = (Pagina*) malloc(sizeof(Pagina)*5);
+	for(i = 0; i < 9; i++){
+		b->pages[0].ponteiros[i] = -1;
+		b->pages[0].elementos[i].chave = -1;
+		b->pages[0].elementos[i].RRN = -1;
+	}
+	b->pages[0].ponteiros[i] = -1;
+	b->UltimoRRN = 0;
+	b->n = 1;
+	b->pages[0].RRN = 0;
+	b->pages[0].n = 0;
+	b->noRaiz = 0;
+
+	imprimePagina(&b->pages[0]);
+
 	
 	// Escreve o Cabeçalho do Arquivo de Indices
 	char status_indice = '1';
-	int noRaiz = -1;
-	int altura = -1;
-	int LastRRN = -1;
+	int noRaiz = 0;
+	int altura = 0;
+	int LastRRN = 0;
 
 	//printf("ola\n");
 	fwrite(&status_indice, sizeof(char), 1, indice_file);
@@ -178,6 +194,7 @@ void arquivo_saida(Arquivo *entrada) {
 	fwrite(&altura, sizeof(int), 1, indice_file);
 	fwrite(&LastRRN, sizeof(int), 1, indice_file);
 	
+	fclose(indice_file);
 	
 
 	//Escreve o Registro de Cabeçalho
@@ -190,13 +207,36 @@ void arquivo_saida(Arquivo *entrada) {
 	for (int i = 0; i < entrada->n_registros_lidos; ++i){
 		
 		EscreveRegistro(fp, entrada->registros_lidos[i], i);
-		insereIndice(indice_file, entrada->registros_lidos[i].codEscola, i);
+		insereIndice(b, entrada->registros_lidos[i].codEscola, i);
+		if(i == 14)
+			break;
 		
 	}	
 
-	//fseek(indice_file, 0, SEEK_SET);
+	
+	//printf("hello\n");
 
-	//ImprimeIndice(indice_file);
+	//printf("b.Noraiz = %d\n", b.noRaiz);
+	
+
+	for(i = 0; i < b->n; i++){
+		Flush(&b->pages[i]);
+	}
+	
+	//printf("oal\n");
+	indice_file = fopen(arquivoIndice, "rb+");
+
+
+	//printf("b->ultimoRRN = %d\n", b.UltimoRRN);
+
+
+	fseek(indice_file,1, SEEK_SET);
+	fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
+	fwrite(&altura, sizeof(int), 1, indice_file);
+	fwrite(&(b->UltimoRRN), sizeof(int), 1, indice_file);
+	fseek(indice_file,0, SEEK_SET);
+
+	ImprimeIndice(indice_file);
 
 	fechaArquivo(fp);
 	fechaArquivo(indice_file);
