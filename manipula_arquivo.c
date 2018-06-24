@@ -166,8 +166,10 @@ void arquivo_saida(Arquivo *entrada) {
 
 
 	indice_file = fopen(arquivoIndice, "rb+");
-	if(indice_file == NULL)
+	if(indice_file == NULL){
+
 		return;
+	}
 	// Crio o meu Buffer Pool, e aloco um no raiz nulo nele inicialmente
 	Buffer_Pool* b =(Buffer_Pool*) malloc(sizeof(Buffer_Pool));
 	b->pages = (Pagina*) malloc(sizeof(Pagina)*5);
@@ -212,25 +214,12 @@ void arquivo_saida(Arquivo *entrada) {
 			Flush(&b->pages[i]);
 	}
 
-	// ImprimeBuffer(b);
-
-	// indice_file = fopen(arquivoIndice, "rb+");
-
-	// fseek(indice_file, 1, SEEK_SET);
-	// fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
-	// fwrite(&altura, sizeof(int), 1, indice_file);
-	// fwrite(&b->UltimoRRN, sizeof(int), 1, indice_file);
-	// fseek(indice_file, 0, SEEK_SET);
-
-	// ImprimeIndice(indice_file);
-
-
-
 	// Escrevo no arquito txt os Page Fault e Page Hit
 	FILE* buffer = fopen(arquivoBuffer, "a");
 	fprintf(buffer,"Page Fault: %d; Page Hit: %d\n", b->page_fault, b->page_hit );
 
 	fclose(fp);
+	fclose(buffer);
 	
 	printf("%s\n", "Arquivo carregado.");
 
@@ -308,7 +297,10 @@ void buscaCampo(FILE* saida, char* nome_campo, char* val_campo){
 
 	for (int i = 0; proxRegistro(saida) == true; i++){
 		r = reg(saida, i);
-		compCampo(nome_campo,val_campo,r);
+		if(r != NULL){
+			compCampo(nome_campo,val_campo,r);
+		}
+		
 	}
 }
 
@@ -335,9 +327,7 @@ bool ImprimeRegistro(FILE* fp, int RRN){
 	//Imprime o Registro
 	Registro* r = reg(fp, RRN);
 
-
-
-	printf("%d %d %s %s %d %s %d %s %d %s\n", RRN, r->codEscola, r->dataInicio, r->dataFinal, r->indicador_tamanho_escola, r->nomeEscola, r->indicador_tamanho_municipio, r->municipio, r->indicador_tamanho_endereco, r->endereco);
+	printf("%d %s %s %d %s %d %s %d %s\n", r->codEscola, r->dataInicio, r->dataFinal, r->indicador_tamanho_escola, r->nomeEscola, r->indicador_tamanho_municipio, r->municipio, r->indicador_tamanho_endereco, r->endereco);
 	
 	return true;
 }
@@ -380,6 +370,33 @@ void RemoveRegistro(FILE* saida, int RRN){
 }
 
 void Insercao(FILE* saida, int codEscola,  char* dataInicio,  char* dataFinal,  char* nomeEscola,  char* municipio,  char*endereco){
+
+	int i;
+
+	// Criando o Buffer Pool e abrindo o arquivo de indice
+	Buffer_Pool* b =(Buffer_Pool*) malloc(sizeof(Buffer_Pool));
+	b->pages = (Pagina*) malloc(sizeof(Pagina)*5);
+	b->n = 0;
+	
+	FILE* indice_file = fopen(arquivoIndice, "rb+");
+	if(indice_file == NULL){
+		printf("Erro ao abrir o arquivo\n");
+		return;
+	}
+
+	char status_indice;
+	int altura;
+	fread(&status_indice, sizeof(char), 1, indice_file);
+	if(status_indice == '0'){
+		printf("Falha no processamento do arquivo.\n");
+		return;
+	}
+	fread(&b->noRaiz, sizeof(int), 1, indice_file);
+	fread(&altura, sizeof(int), 1, indice_file);
+	fread(&b->UltimoRRN, sizeof(int), 1, indice_file);
+	fclose(indice_file);
+
+
 
 	fseek(saida, 1, SEEK_SET); // indo para o topo da pilha
 
@@ -437,8 +454,27 @@ void Insercao(FILE* saida, int codEscola,  char* dataInicio,  char* dataFinal,  
 
 
 	}
+	// Insiro a chave no arquivo de indice
+	insereIndice(b, codEscola, RRN);
+	// Escrevo no arquito txt os Page Fault e Page Hit
+	FILE* buffer = fopen(arquivoBuffer, "a");
+	fprintf(buffer,"Page Fault: %d; Page Hit: %d\n", b->page_fault, b->page_hit );
 
+	fclose(buffer);
+	// dou flush em todas as paginas do buffer
+	for(i = 0; i < b->n; i++)
+		Flush(&b->pages[i]);
+	
+	// escrevo o registro no arquivo de dados
 	EscreveRegistro(saida,reg,RRN);
+
+	// atualizo o noRaiz e o UltimoRRN caso estes tenham sido mudados durante a inserção
+	indice_file = fopen(arquivoIndice, "rb+");
+	fseek(indice_file, 1, SEEK_SET);
+	fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
+	fwrite(&altura, sizeof(int), 1, indice_file);
+	fwrite(&b->UltimoRRN, sizeof(int), 1, indice_file);
+	fclose(indice_file);
 
 	printf("Registro inserido com sucesso.\n");
 }
@@ -473,8 +509,6 @@ void updateRegistro(FILE* saida, int codEscola,  char* dataInicio,  char* dataFi
 
 	reg.indicador_tamanho_endereco = strlen(endereco);
 	reg.endereco = endereco;
-
-	//printf("%d %s %s %d %s %d %s %d %s\n", reg.codEscola, reg.dataInicio, reg.dataFinal, reg.indicador_tamanho_escola, reg.nomeEscola, reg.indicador_tamanho_municipio, reg.municipio, reg.indicador_tamanho_endereco, reg.endereco);
 
 	if(existeReg(RRN, saida) == true){		// se o registro existe
 
@@ -600,6 +634,12 @@ Registro *reg( FILE *fp, int RRN){ //retorna um registro no RRN passado
 	fseek(fp, TAMANHOREGISTRO*RRN + T_CABECALHO, SEEK_SET);							 	
 
 	Registro* reg = (Registro *)malloc(sizeof(Registro));
+	char c;
+	fread(&c, sizeof(char), 1, fp);
+	if(c == '*')
+		return NULL;
+	fseek(fp, TAMANHOREGISTRO*RRN + T_CABECALHO, SEEK_SET);
+
 
 	fread(&(reg->codEscola), sizeof(int), 1, fp); // 4 bytes
 	fread(reg->dataInicio, sizeof(char), 10, fp);  // 10*1 byte

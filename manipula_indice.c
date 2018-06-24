@@ -4,6 +4,65 @@
 
 #include "manipula_indice.h"
 
+int busca(Buffer_Pool* b, int codEscola, int RRN){
+	int i;
+	if(RRN == -1){ // Não encontrei a chave
+		return -1;
+	}
+
+	Pagina p = get(b, RRN); // Recupero a pagina do RRN que eu estou agora
+	
+	for (i = 0; i < p.n; i++){
+		if(codEscola == p.elementos[i].chave){ // Se a chave ja existe
+			return p.elementos[i].RRN;
+		}else if(codEscola < p.elementos[i].chave){
+			return busca(b, codEscola, p.ponteiros[i]);
+		}
+	}	
+	// se minha chave eh maior que todas do no
+	// vou para o ultimo ponteiro valido do meu no
+	return busca(b, codEscola, p.ponteiros[i]);
+}
+
+int buscaIndice(int codEscola){
+	
+	// Crio o buffer pool e leio as informações do arquivo
+	Buffer_Pool* b =(Buffer_Pool*) malloc(sizeof(Buffer_Pool));
+	b->pages = (Pagina*) malloc(sizeof(Pagina)*5);
+	b->n = 0;
+	
+	FILE* indice_file = fopen(arquivoIndice, "rb+");
+	if(indice_file == NULL){
+		printf("Falha no processamento do arquivo.\n");
+		return -2;
+	}
+
+	char status_indice;
+	int altura;
+	fread(&status_indice, sizeof(char), 1, indice_file);
+	if(status_indice == '0'){
+		printf("Falha no processamento do arquivo.\n");
+		return -2;
+	}
+	fread(&b->noRaiz, sizeof(int), 1, indice_file);
+	fread(&altura, sizeof(int), 1, indice_file);
+	fread(&b->UltimoRRN, sizeof(int), 1, indice_file);
+	fclose(indice_file);
+
+	// busco a chave na arvore
+	int RRN = busca(b, codEscola, b->noRaiz);
+	// Escrevos page_hit e Page_fault no arquivo txt
+	FILE* buffer = fopen(arquivoBuffer, "a");
+	fprintf(buffer,"Page Fault: %d; Page Hit: %d\n", b->page_fault, b->page_hit );
+
+	fclose(buffer);
+	return RRN;
+
+
+
+}
+
+
 void Ordena(Pagina* p, int codEscola, int data_reference){
 	
 	int i;
@@ -168,7 +227,6 @@ void percorreArvore(Buffer_Pool* b, int* codEscola, int* data_reference, int* ul
 	
 	for (i = 0; i < p.n; i++){
 		if(*codEscola == p.elementos[i].chave){ // Se a chave ja existe
-			printf("Chave Existente\n");
 			return ;
 		}else if(*codEscola < p.elementos[i].chave){ // Se eu achar uma chave no No que eh maior que a chave que eu quero inserir
 			// vou para o ponteiro da esquerda da chave
@@ -466,7 +524,7 @@ Pagina get(Buffer_Pool* b, int RRN){
 		p->n = -1;
 		return  *p;
 	}
-
+	fclose(fp);
 	b->page_fault++;
 	
 	p->RRN = RRN;

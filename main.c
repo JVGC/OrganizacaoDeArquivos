@@ -6,19 +6,19 @@
 
 int main (int argc, char ** argv) {
 
-	FILE* indice_file = fopen(arquivoIndice, "wb");
-	fclose(indice_file);
+	
 
 
 	int funcionalidade = atoi(*(argv + 1));
 	if(funcionalidade == 1){ //leitura e gravação de registro
+		// Crio o Arquivo de indices, vazio mesmo
+		FILE* indice_file = fopen(arquivoIndice, "wb");
+		fclose(indice_file);
 
 		char * nome_arquivo;
 		nome_arquivo = *(argv + 2);
 		Arquivo dados_brutos = le_dados(nome_arquivo);
 		arquivo_saida(&dados_brutos);
-		
-		//free_Arquivo(dados_brutos);
 
 	}else if(funcionalidade == 2){ // exibição de todos os registros no terminal
 		exibe_registros();
@@ -81,9 +81,10 @@ int main (int argc, char ** argv) {
 			printf("Falha no processamento do arquivo.\n");		
 		}else{
 			Insercao(saida, codEscola, *(argv+3), *(argv+4), *(argv+5), *(argv+6), *(argv+7));
+			fclose(saida);
 		}	
 
-		fclose(saida);
+		
 
 	}else if(funcionalidade == 7){
 
@@ -107,7 +108,46 @@ int main (int argc, char ** argv) {
 	}else if(funcionalidade == 9){
 
 		allRegRemovidos();
+	}else if(funcionalidade == 10){
+		char * nome_arquivo;
+		nome_arquivo = *(argv + 2);
+		Arquivo dados_brutos = le_dados(nome_arquivo);
+		arquivo_saida(&dados_brutos);
+
+	}else if(funcionalidade == 11){
+		int codEscola = atoi(*(argv+2));
+
+		FILE * saida;
+		saida = fopen(arquivoSaida, "r+"); // para leitura e escrita
+		if(saida == NULL){
+			printf("Falha no processamento do arquivo.\n");		
+		}else{
+			Insercao(saida, codEscola, *(argv+3), *(argv+4), *(argv+5), *(argv+6), *(argv+7));
+		}	
+
+		fclose(saida);
+	}else if(funcionalidade == 12){
+		int codEscola = atoi(*(argv+2));
+		int RRN = buscaIndice(codEscola);
+		if(RRN == -1){
+			printf("Registro inexistente.\n");
+		
+		}else if (RRN == -2){
+			return 0;
+		}else{
+			FILE * saida;
+			saida = abreArquivo(arquivoSaida);
+			if(saida == NULL){
+				printf("Falha no processamento do arquivo.\n");		
+				return 0;
+			}
+
+			if(ImprimeRegistro(saida, RRN) == false)
+				printf("Registro inexistente.\n");
+			fclose(saida);
+		}
 	}
+
 
 	return 0;
 }

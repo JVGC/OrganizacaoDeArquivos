@@ -64,4 +64,7 @@ bool proxPagina(FILE *fp);
 Pagina* pag(FILE* fp, int RRN);
 Pagina NoVazio();
 void ImprimeIndice(FILE* fp);
+
+int buscaIndice(int codEscola);
+
 #endif
