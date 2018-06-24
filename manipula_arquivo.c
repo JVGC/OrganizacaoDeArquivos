@@ -156,7 +156,8 @@ void EscreveRegistro(FILE* fp,Registro reg, int RRN){
 
 
 void arquivo_saida(Arquivo *entrada) {
-int i;
+
+	int i;
 
 	FILE *fp, *indice_file;
 	fp = fopen(arquivoSaida, "wb");
@@ -178,15 +179,12 @@ int i;
 	b->pages[0].RRN = 0;
 	b->pages[0].n = 0;
 	b->noRaiz = 0;
-
-	imprimePagina(&b->pages[0]);
-
 	
 	// Escreve o Cabeçalho do Arquivo de Indices
 	char status_indice = '1';
-	int noRaiz = 0;
-	int altura = 0;
-	int LastRRN = 0;
+	int noRaiz = -1;
+	int altura = -1;
+	int LastRRN = -1;
 
 	//printf("ola\n");
 	fwrite(&status_indice, sizeof(char), 1, indice_file);
@@ -195,7 +193,6 @@ int i;
 	fwrite(&LastRRN, sizeof(int), 1, indice_file);
 	
 	fclose(indice_file);
-	
 
 	//Escreve o Registro de Cabeçalho
 	
@@ -208,38 +205,32 @@ int i;
 		
 		EscreveRegistro(fp, entrada->registros_lidos[i], i);
 		insereIndice(b, entrada->registros_lidos[i].codEscola, i);
-		if(i == 14)
-			break;
-		
 	}	
 
-	
-	//printf("hello\n");
-
-	//printf("b.Noraiz = %d\n", b.noRaiz);
-	
+	ImprimeBuffer(b);
 
 	for(i = 0; i < b->n; i++){
-		Flush(&b->pages[i]);
+		if(b->pages[i].Modified == true)
+			Flush(&b->pages[i]);
 	}
-	
-	//printf("oal\n");
-	indice_file = fopen(arquivoIndice, "rb+");
 
+	FILE* buffer = fopen(arquivoBuffer, "a");
+	fprintf(buffer,"Page Fault: %d; Page Hit: %d\n", b->page_fault, b->page_hit );
 
-	//printf("b->ultimoRRN = %d\n", b.UltimoRRN);
+	// printf("\n\n");
+	// indice_file = fopen(arquivoIndice, "rb+");
 
+	// fseek(indice_file, 0, SEEK_SET);
+	// fgetc(indice_file);
+	// fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
+	// fwrite(&altura, sizeof(int), 1, indice_file);
+	// fwrite(&b->UltimoRRN, sizeof(int), 1, indice_file);
+	// fseek(indice_file, 0, SEEK_SET);
 
-	fseek(indice_file,1, SEEK_SET);
-	fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
-	fwrite(&altura, sizeof(int), 1, indice_file);
-	fwrite(&(b->UltimoRRN), sizeof(int), 1, indice_file);
-	fseek(indice_file,0, SEEK_SET);
-
-	ImprimeIndice(indice_file);
+	// ImprimeIndice(indice_file);
 
 	fechaArquivo(fp);
-	fechaArquivo(indice_file);
+	//fechaArquivo(indice_file);
 	
 	printf("%s\n", "Arquivo carregado.");
 

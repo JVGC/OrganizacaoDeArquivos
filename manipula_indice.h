@@ -6,20 +6,17 @@
 #include <string.h>
 
 #define arquivoIndice "indice.bin"
+#define arquivoBuffer "buffer-info.text"
 #define TAMANHOPAGINA 116
 #define T_CABECALHO_INDICE 13
 #define bool int
 #define true 1
 #define false 0
 
-
-
-
 struct elemento{
 
 	int chave;
 	int RRN;
-	int n; // numero de paginas no buffer
 };
 
 typedef struct elemento Elemento;
@@ -45,22 +42,26 @@ struct buffer{
 };
 
 typedef struct buffer Buffer_Pool;
-void put(Buffer_Pool* b, Pagina* p);
+
+
+void put(Buffer_Pool* b, Pagina p);
 void Rearranja(Buffer_Pool* b, Pagina p);
 void Flush(Pagina* p);
-void LRU(Buffer_Pool* b, Pagina* p);
-Pagina* get(Buffer_Pool* b, int RRN);
+void LRU(Buffer_Pool* b, Pagina p);
+Pagina get(Buffer_Pool* b, int RRN);
+void ImprimeBuffer(Buffer_Pool* b);
 
 
+typedef struct pagina Pagina;
 
-int split(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int noRaiz);
+void split(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* noRaiz, int* propagacao);
 void escrevePagina(FILE* fp, Pagina* p, int RRN);
 void Ordena(Pagina* p, int codEscola, int data_reference);
-int percorreArvore(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int noRaiz);
+void percorreArvore(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int* noRaiz, int* propagacao);
 void insereIndice(Buffer_Pool* b, int codEscola, int RRN);
 void imprimePagina(Pagina* p);
 bool proxPagina(FILE *fp);
 Pagina* pag(FILE* fp, int RRN);
-Pagina* NoVazio();
+Pagina NoVazio();
 void ImprimeIndice(FILE* fp);
 #endif

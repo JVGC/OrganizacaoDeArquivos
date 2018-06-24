@@ -14,168 +14,168 @@ void Ordena(Pagina* p, int codEscola, int data_reference){
 		}
 	}
 	int pos = i;
+
 	for(i = p->n; i> pos; i--){
 		p->ponteiros[i+1] = p->ponteiros[i];
 		p->elementos[i].chave = p->elementos[i-1].chave;
 		p->elementos[i].RRN = p->elementos[i-1].RRN;
 	}
-
-
-
-
 	p->elementos[pos].chave = codEscola;
 	p->elementos[pos].RRN = data_reference;
-
-	
-
-
-
 
 }
 
 
-int split(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int noRaiz){
-
-
+void split(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* noRaiz, int* propagacao){
 
 	int i;
-	//printf("split RRN = %d\n", RRN);
-	Pagina* p = get(b, RRN);
-	//imprimePagina(p);
-	
-	Pagina* Father = get(b, pai);
-	//printf("split ola\n");
+	Pagina Father;
 
+	Pagina p = get(b, RRN);
 
-
-	Pagina* NewPag = NoVazio();
+	Pagina NewPag = NoVazio();
 
 	//Crio um novo no na mesma altura do atual e divido os membros do no entre as duas paginas
-	NewPag->n = (p->n)/2;
-	for(i = NewPag->n; i < p->n; i++){
-		NewPag->ponteiros[i - NewPag->n] = p->ponteiros[i];
-		NewPag->elementos[i - NewPag->n].chave = p->elementos[i].chave;
-		NewPag->elementos[i - NewPag->n].RRN = p->elementos[i].RRN;
+	NewPag.n = (p.n)/2;
+	for(i = NewPag.n; i < p.n; i++){
+		NewPag.ponteiros[i - NewPag.n] = p.ponteiros[i];
+		NewPag.elementos[i - NewPag.n].chave = p.elementos[i].chave;
+		NewPag.elementos[i - NewPag.n].RRN = p.elementos[i].RRN;
 		
 	}
-
-	if(*codEscola == 35000152)
-	{
-		imprimePagina(NewPag);
+	NewPag.ponteiros[NewPag.n+1] = p.ponteiros[p.n];
+	if((*propagacao) == 1){
+		NewPag.ponteiros[NewPag.n+2] = (*ultimoRRN);
+		(*propagacao) = 0;
 	}
+	
 
-	p->n = (p->n)/2;
-	if(p->elementos[(p->n)].chave < *codEscola){
-		NewPag->n++;
-		Ordena(NewPag, *codEscola, *data_reference);
+	p.n = (p.n)/2;
+
+	if(p.elementos[(p.n)].chave < *codEscola){
+		NewPag.n++;
+		Ordena(&NewPag, *codEscola, *data_reference);
+		
+	
+		
+
 	}else{
-		p->n++;
-		Ordena(p, *codEscola, *data_reference);
+		p.n++;
+		Ordena(&p, *codEscola, *data_reference);
 		
-		Ordena(NewPag,p->elementos[p->n-1].chave, p->elementos[p->n-1].RRN);
-		p->n--;
+		Ordena(&NewPag,p.elementos[p.n-1].chave, p.elementos[p.n-1].RRN);
+		p.n--;
 		
 	}
 
 
-	if(Father != NULL){ // se ele tem pai
+	if(pai != -1){
+		Father = get(b, pai);
+
 		// Insiro o primeiro elemento da nova chave do meu NewPag no Pai
-		if(Father->n < 9){
-			Ordena(Father, NewPag->elementos[0].chave, NewPag->elementos[0].RRN);
-			Father->ponteiros[Father->n+1] = (*ultimoRRN)+1;
-			Father->n++;
+		if(Father.n < 9){
+			Ordena(&Father, NewPag.elementos[0].chave, NewPag.elementos[0].RRN);
+			//imprimePagina(&Father);
+			Father.ponteiros[Father.n+1] = (*ultimoRRN)+1;
+			Father.n++;
 			*(ultimoRRN) += 1;
-			NewPag->RRN = (*ultimoRRN);
+			NewPag.RRN = (*ultimoRRN);
 		}else{
 			*(ultimoRRN) += 1;
-			NewPag->RRN = (*ultimoRRN);
-			(*codEscola) = NewPag->elementos[0].chave;
-			(*data_reference) = NewPag->elementos[0].RRN;
+			NewPag.RRN = (*ultimoRRN);
+			(*codEscola) = NewPag.elementos[0].chave;
+			(*data_reference) = NewPag.elementos[0].RRN;
+
+
 		}
 		
 		
 	}else{
 
 		Father = NoVazio();
-		Ordena(Father, NewPag->elementos[0].chave, NewPag->elementos[0].RRN);
-		Father->n = 1;
-		Father->ponteiros[Father->n] = (*ultimoRRN) +1;
-		Father->ponteiros[(Father->n)-1] = RRN;
-		Father->RRN = (*ultimoRRN) +2;
+		//printf("chave a ser promovida = %d\n", NewPag.elementos[0].chave);
+		Father.n = 0;
+		Ordena(&Father, NewPag.elementos[0].chave, NewPag.elementos[0].RRN);
+		imprimePagina(&NewPag);
+		Father.n = 1;
+		Father.ponteiros[Father.n] = (*ultimoRRN) +1;
+		Father.ponteiros[(Father.n)-1] = RRN;
+		Father.RRN = (*ultimoRRN) +2;
 		*(ultimoRRN) += 2;
-		noRaiz = (*ultimoRRN);
-		NewPag->RRN  = (*ultimoRRN) -1;
+		*noRaiz = (*ultimoRRN);
+		NewPag.RRN = (*ultimoRRN) -1;
 	}
 
-	for(i = 0; i < (NewPag->n); i++){
-		NewPag->ponteiros[i] = NewPag->ponteiros[i+1];
-		NewPag->elementos[i].chave = NewPag->elementos[i+1].chave;
-		NewPag->elementos[i].RRN = NewPag->elementos[i+1].RRN; 
+	for(i = 0; i < (NewPag.n); i++){
+		NewPag.ponteiros[i] = NewPag.ponteiros[i+1];
+		NewPag.elementos[i].chave = NewPag.elementos[i+1].chave;
+		NewPag.elementos[i].RRN = NewPag.elementos[i+1].RRN; 
 	}
-	NewPag->ponteiros[i] = NewPag->ponteiros[i+1];
-	NewPag->elementos[i].chave = NewPag->elementos[i+1].chave;
-	NewPag->elementos[i].RRN = NewPag->elementos[i+1].RRN;
+	NewPag.ponteiros[i] = NewPag.ponteiros[i+1];
+	NewPag.elementos[i].chave = NewPag.elementos[i+1].chave;
+	NewPag.elementos[i].RRN = NewPag.elementos[i+1].RRN;
+
+
 	put(b, NewPag);
-
 	put(b, p);
-	put(b, Father); 
+	put(b, Father);
 
 
-	return noRaiz;
 	
 
 }
 
-int percorreArvore(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int noRaiz){
-	if(RRN == -1){ // tenho que inserir no pai
-		Pagina* p = get(b, pai);
-		
+void percorreArvore(Buffer_Pool* b, int* codEscola, int* data_reference, int* ultimoRRN, int RRN, int pai, int* flag, int* noRaiz, int* propagacao){
 	
-		if(p->n == 9){ // no cheio, tenho que splitar(depois ver como fazer)
+	int i;
+	if(RRN == -1){// tenho que inserir no pai
+		
+		Pagina p = get(b, pai);
+		if(p.n == 9){ // no cheio, tenho que splitar(depois ver como fazer)
 			*flag = 1;
 		}else{
-			Ordena(p, *codEscola, *data_reference);
-			p->n++;
-			put(b,p);
+			
+			Ordena(&p, *codEscola, *data_reference);
+			p.n++;
+			put(b, p);
+			
 		}
-		return noRaiz;
+		return ;
 	}
 
-	int i;
 	
+	Pagina p = get(b, RRN);
 	
-	Pagina* p = get(b, RRN);
-	// imprimePagina(p);
-	// exit(0);
-	
-	for (i = 0; i < p->n; i++){
-		if(*codEscola == p->elementos[i].chave){
-			return noRaiz;
-		}else if(*codEscola < p->elementos[i].chave){
+	for (i = 0; i < p.n; i++){
+		if(*codEscola == p.elementos[i].chave){
+			return ;
+		}else if(*codEscola < p.elementos[i].chave){
 
-			percorreArvore(b, codEscola, data_reference, ultimoRRN, p->ponteiros[i], RRN, flag, noRaiz);
+			percorreArvore(b, codEscola, data_reference, ultimoRRN, p.ponteiros[i], RRN, flag, noRaiz, propagacao);
 			if(*flag == 1){ // Tenho que fazer o split
 				if(pai != -1){
-					Pagina* f = get(b, pai);
-					if(f->n < 9)
+					Pagina f = get(b, pai);
+					if(f.n < 9)
 						(*flag) = 0;
 
 				}else{
 					(*flag) = 0;	
 				}
-				return split(b, codEscola, data_reference, ultimoRRN, RRN, pai, noRaiz);
+				
+				split(b, codEscola, data_reference, ultimoRRN, RRN, pai, noRaiz, propagacao);
+				if(*flag == 1)
+					*propagacao=1;
 
 			}
-			return noRaiz;
+			return ;
 		} 
 	}
-	
-	percorreArvore(b, codEscola, data_reference, ultimoRRN, p->ponteiros[i], RRN, flag, noRaiz);
+	percorreArvore(b, codEscola, data_reference, ultimoRRN, p.ponteiros[i], RRN, flag, noRaiz, propagacao);
 
 	if(*flag == 1){ // Tenho que fazer o split
 		if(pai != -1){
-			Pagina* f = get(b, pai);
-			if(f->n < 9)
+			Pagina f = get(b, pai);
+			if(f.n < 9)
 				(*flag) = 0;
 
 		}else{
@@ -183,74 +183,29 @@ int percorreArvore(Buffer_Pool* b, int* codEscola, int* data_reference, int* ult
 		}
 		
 
-		return split(b, codEscola, data_reference, ultimoRRN, RRN, pai, noRaiz);
+		split(b, codEscola, data_reference, ultimoRRN, RRN, pai, noRaiz, propagacao);
+		if(*flag == 1)
+			*propagacao=1;
 	}
 	
-	return noRaiz;
-
+	return;
 }
 
 void insereIndice(Buffer_Pool* b, int codEscola, int RRN){
-
-	//get(b, RRN);
-
-
-
-	// if(noRaiz == -1){ // Primeira inserção no arquivo (Nao existe nenhum no ainda)
-	// 	int i;
-	// 	//crio a pagina nova
-	// 	Pagina* p = (Pagina*) malloc(sizeof(Pagina));
-	// 	p->n = 1;
-	// 	for(i = 0; i < 9; i++){
-	// 		p->ponteiros[i] = -1;
-	// 		p->elementos[i].chave = -1;
-	// 		p->elementos[i].RRN = -1;
-
-	// 	}
-	// 	p->ponteiros[i] = -1;
-	// 	p->elementos[0].chave = codEscola;
-	// 	p->elementos[0].RRN = RRN;
-
-	// 	//escrevo ela no arquivo
-	// 	escrevePagina(fp, p, 0);
-
-	// 	//atualizo o no raiz
-	// 	fseek(fp, 0, SEEK_SET);
-	// 	fgetc(fp);
-	// 	noRaiz = 0;
-	// 	fwrite(&noRaiz, sizeof(int), 1, fp);
-	// 	ultimoRRN = 0;
-	// 	altura=0;
-	// 	fwrite(&altura, sizeof(int), 1, fp);
-	// 	fwrite(&ultimoRRN, sizeof(int), 1, fp);
-
-	// 	free(p);
-	// 	return;
-	// }else{
-		
-	//printf("b->noRaiz =  %d\n", b->noRaiz);
-
-		int flag = 0;
-		b->noRaiz = percorreArvore(b, &codEscola, &RRN, &b->UltimoRRN, b->noRaiz, -1, &flag, b->noRaiz);
-		// fseek(fp, 1, SEEK_SET);
-		// fwrite(&noRaiz, sizeof(int), 1, fp);
-		// fseek(fp, 4, SEEK_CUR);
-		// fwrite(&ultimoRRN, sizeof(int), 1, fp);
-	//}
-
+	
+	
+	int flag = 0;
+	int propagacao =-1;
+	percorreArvore(b, &codEscola, &RRN, &b->UltimoRRN, b->noRaiz, -1, &flag, &b->noRaiz, &propagacao);
 	return;
-
 }
 
 
 
 void escrevePagina(FILE* fp, Pagina* p, int RRN){
-	//printf("escrevePagina\n");
-	//("RRR = %d\n", RRN);
+	
 	int i;
 	fseek(fp, (T_CABECALHO_INDICE + (RRN * TAMANHOPAGINA)), SEEK_SET);
-
-	//imprimePagina(p);
 
 	fwrite(&(p->n), sizeof(int), 1, fp);
 	
@@ -423,85 +378,89 @@ Pagina* pag(FILE* fp, int RRN){
 
 }
 
-Pagina* NoVazio(){
+Pagina NoVazio(){
 	int i;
 	//Crio um novo nó
-	Pagina* NewPag = (Pagina*) malloc(sizeof(Pagina));
+	Pagina NewPag;
 	for(i = 0; i < 9; i++){
-		NewPag->ponteiros[i] = -1;
-		NewPag->elementos[i].chave = -1;
-		NewPag->elementos[i].RRN = -1;
+		NewPag.ponteiros[i] = -1;
+		NewPag.elementos[i].chave = -1;
+		NewPag.elementos[i].RRN = -1;
 	}
-	NewPag->ponteiros[i] = -1;
+	NewPag.ponteiros[i] = -1;
 
 	return NewPag;
 
 }
 
-Pagina* get(Buffer_Pool* b, int RRN){
+Pagina get(Buffer_Pool* b, int RRN){
 
 	int i;
 
 	for(i = 0; i < b->n; i++){
 
 		if(b->pages[i].RRN == RRN){
+			//printf("ola\n");
 			Rearranja(b, b->pages[i]);
-			imprimePagina(&(b->pages[b->n-1]));
-			return &(b->pages[b->n-1]);
+			b->page_hit++;
+			Pagina pag = b->pages[b->n-1];
+			return pag;
 		}
 
 	}
-
-	printf("RRN = %d\n",RRN);
 	
 	FILE* fp = fopen(arquivoIndice, "rb+");
 	if(fp == NULL){
 		printf("Erro na abertura do arquivo\n");
-		return NULL;
+		Pagina p;
+		return p;
 	}
 
 
 	Pagina* p = pag(fp, RRN);
 	if(p == NULL){
-		printf("ola\n");
-		return  NULL;
+		printf("pai nao existe\n");
+		p->n = -1;
+		return  *p;
 	}
 
+	b->page_fault++;
+	
 	p->RRN = RRN;
 
-	put(b, p);
+	put(b, *p);
 
-	return p;
+	return *p;
 
 
 }
 
-void LRU(Buffer_Pool* b, Pagina* p){
-	if(b->n == 5){
-		// aplico a politica de substituição
-		if(b->pages[0].Modified == true){
-			Flush(&b->pages[0]);
+void put(Buffer_Pool* b, Pagina p){
+	
+	int i;
+	for(i = 0; i < b->n; i++){
+		if(b->pages[i].RRN == p.RRN){
+			b->pages[i] = p;
+			b->pages[i].Modified = true;
+			Rearranja(b, b->pages[i]);
+			return ;
 		}
-		b->pages[0] = *p;	
-		Rearranja(b, *p);
-
 	}
-}
 
-void Flush(Pagina* p){
-	FILE* fp = fopen(arquivoIndice, "r+");
+	if(b->n == 5){ // Buffer cheio
+		LRU(b, p);	
+		//printf("buffer cheio\n");	
+		return ;
 
-	if(fp == NULL){
-		printf("deu ruim\n");
+	}else{
+		b->pages[i] = p;
+		b->n++;
 		return ;
 	}
-	printf("RRN = %d\n", p->RRN);
-	imprimePagina(p);
-	
-	escrevePagina(fp, p, p->RRN);
 
-	fclose(fp);
+
 }
+
 
 void Rearranja(Buffer_Pool* b, Pagina p){
 	
@@ -522,33 +481,53 @@ void Rearranja(Buffer_Pool* b, Pagina p){
 	
 	b->pages[(b->n)-1] = p;
 
-
-
-
 }
 
 
-void put(Buffer_Pool* b, Pagina* p){
-	
-	int i;
-	if(b->n == 5){ // Buffer cheio
-		LRU(b, p);		
-		return ;
+void LRU(Buffer_Pool* b, Pagina p){
+	if(b->n == 5){
 
-	}else{
-		for(i = 0; i < b->n; i++){
-			if(b->pages[i].RRN == p->RRN){
-				b->pages[i] = *p;
-				b->pages[i].Modified = true;
-				return ;
+		if(b->pages[0].RRN == b->noRaiz){
+			// aplico a politica de substituição
+			if(b->pages[1].Modified == true){
+				Flush(&b->pages[1]);
 			}
+			b->pages[1] = p;	
+			Rearranja(b, p);
+		}else{
+			// aplico a politica de substituição
+			if(b->pages[0].Modified == true){
+				Flush(&b->pages[0]);
+			}
+			b->pages[0] = p;	
+			Rearranja(b, p);
 		}
-		p->Modified = true;
-		b->pages[i] = *p;
-		b->n++;
+		
+
+	}
+}
+
+void Flush(Pagina* p){
+	FILE* fp = fopen(arquivoIndice, "r+");
+
+	if(fp == NULL){
 		return ;
 	}
+	
+	escrevePagina(fp, p, p->RRN);
 
+	fclose(fp);
+}
+void ImprimeBuffer(Buffer_Pool* b){
+
+
+	printf("imprimindo buffer\n");
+	printf("b->n = %d\n", b->n);
+	printf("b->noRaiz = %d\n", b->noRaiz);
+			//exit(0);
+	for(int i = 0; i < b->n; i++){
+		printf("RRN: %d\n",b->pages[i].RRN );
+		imprimePagina(&b->pages[i]);
+	}
 
 }
-
