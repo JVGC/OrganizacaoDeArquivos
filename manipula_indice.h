@@ -32,24 +32,24 @@ struct pagina{
 typedef struct pagina Pagina;
 
 struct buffer{
-	Pagina* pages;
-	int UltimoRRN;
-	int noRaiz;
-	int n;
-	int page_hit;
-	int page_fault;
+	Pagina* pages; // vetor de paginas
+	int UltimoRRN; // Valor de RRN da ultima pagina criada
+	int noRaiz; // RRN do No Raiz da arvore-b
+	int n; // Numero de Paginas no buffer
+	int page_hit; // Quantas vezes tentou acessar uma pagina no buffer e ela estava la
+	int page_fault; // E quantas ela nao estava
 
 };
 
 typedef struct buffer Buffer_Pool;
 
 
-void put(Buffer_Pool* b, Pagina p);
-void Rearranja(Buffer_Pool* b, Pagina p);
-void Flush(Pagina* p);
-void LRU(Buffer_Pool* b, Pagina p);
-Pagina get(Buffer_Pool* b, int RRN);
-void ImprimeBuffer(Buffer_Pool* b);
+void put(Buffer_Pool* b, Pagina p); // Coloca p no buffer(se ela n estiver la insere, se estiver escreve por cima e marca como mdoficada)
+void Rearranja(Buffer_Pool* b, Pagina p); // Coloca a pagina p, no fim do vetor no buffer
+void Flush(Pagina* p); // Escreve a pagina p no arquivo de indice
+void LRU(Buffer_Pool* b, Pagina p); // Aplica a politica de substituição(chama Flush e Rearranja no seu algoritmo)
+Pagina get(Buffer_Pool* b, int RRN); // Retorna a pagina do RRN solicitado (chama put() caso a pagina não esteja no buffer)
+void ImprimeBuffer(Buffer_Pool* b); // Imprime todas as paginas do buffer
 
 
 typedef struct pagina Pagina;

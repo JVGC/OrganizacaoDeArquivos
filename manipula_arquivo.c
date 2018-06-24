@@ -160,12 +160,15 @@ void arquivo_saida(Arquivo *entrada) {
 	int i;
 
 	FILE *fp, *indice_file;
+	
+	// Abro o Arquivo de Indice e de dados
 	fp = fopen(arquivoSaida, "wb");
+
 
 	indice_file = fopen(arquivoIndice, "rb+");
 	if(indice_file == NULL)
 		return;
-	
+	// Crio o meu Buffer Pool, e aloco um no raiz nulo nele inicialmente
 	Buffer_Pool* b =(Buffer_Pool*) malloc(sizeof(Buffer_Pool));
 	b->pages = (Pagina*) malloc(sizeof(Pagina)*5);
 	for(i = 0; i < 9; i++){
@@ -182,46 +185,38 @@ void arquivo_saida(Arquivo *entrada) {
 	
 	// Escreve o Cabeçalho do Arquivo de Indices
 	char status_indice = '1';
-	int noRaiz = -1;
 	int altura = -1;
-	int LastRRN = -1;
 
-	//printf("ola\n");
 	fwrite(&status_indice, sizeof(char), 1, indice_file);
-	fwrite(&noRaiz, sizeof(int), 1, indice_file);
+	fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
 	fwrite(&altura, sizeof(int), 1, indice_file);
-	fwrite(&LastRRN, sizeof(int), 1, indice_file);
+	fwrite(&b->UltimoRRN, sizeof(int), 1, indice_file);
 	
 	fclose(indice_file);
 
-	//Escreve o Registro de Cabeçalho
+	//Escreve o Registro de Cabeçalho do Arquivo de Dados
 	
 	fwrite(&entrada->status, sizeof(char), 1, fp);
 	fwrite(&entrada->topo_pilha, sizeof(int), 1, fp);
 
 
-	// Escrevo no Arquivo de Saida os Registros Validos
+	// Escrevo no Arquivo de Saida os Registros Validos e Insiro o Indice na árvore b(passando o buffer como argumento)
 	for (int i = 0; i < entrada->n_registros_lidos; ++i){
 		
 		EscreveRegistro(fp, entrada->registros_lidos[i], i);
 		insereIndice(b, entrada->registros_lidos[i].codEscola, i);
 	}	
-
-	ImprimeBuffer(b);
-
+	// Para terminar a execução. Dou flush em todas as páginas que estão modificadas no buffer
 	for(i = 0; i < b->n; i++){
 		if(b->pages[i].Modified == true)
 			Flush(&b->pages[i]);
 	}
 
-	FILE* buffer = fopen(arquivoBuffer, "a");
-	fprintf(buffer,"Page Fault: %d; Page Hit: %d\n", b->page_fault, b->page_hit );
+	// ImprimeBuffer(b);
 
-	// printf("\n\n");
 	// indice_file = fopen(arquivoIndice, "rb+");
 
-	// fseek(indice_file, 0, SEEK_SET);
-	// fgetc(indice_file);
+	// fseek(indice_file, 1, SEEK_SET);
 	// fwrite(&b->noRaiz, sizeof(int), 1, indice_file);
 	// fwrite(&altura, sizeof(int), 1, indice_file);
 	// fwrite(&b->UltimoRRN, sizeof(int), 1, indice_file);
@@ -229,8 +224,13 @@ void arquivo_saida(Arquivo *entrada) {
 
 	// ImprimeIndice(indice_file);
 
-	fechaArquivo(fp);
-	//fechaArquivo(indice_file);
+
+
+	// Escrevo no arquito txt os Page Fault e Page Hit
+	FILE* buffer = fopen(arquivoBuffer, "a");
+	fprintf(buffer,"Page Fault: %d; Page Hit: %d\n", b->page_fault, b->page_hit );
+
+	fclose(fp);
 	
 	printf("%s\n", "Arquivo carregado.");
 
